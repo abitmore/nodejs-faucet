@@ -216,12 +216,27 @@ router.post('/v1/accounts', async function (req, res, next) {
     let ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     //let hashIp = crypto.createHash('md5').update(ip).digest("hex");
     // console.log('ip', ip, hashIp)
+
+    const errs = [
+        "Only standard accounts names allowed",
+        "Max name length 24 chars",
+    ]
+
     let result = false;
     let err = false;
     let name = (req.body.account.name).toLowerCase();
+    let currentErr = "";
     if (!config.bts.allowPremium) {
-        err = !(await is_cheap_name(name))// is not cheap name = true
+        err = !(await is_cheap_name(name)); // is not cheap name = true
+        currentErr = errs[0]
     }
+
+    if (name.length > 24) {
+        err = true;
+        currentErr = errs[1]
+    }
+
+
     if (req.body.account && !err) {
         result = await registerAccount({
             name: name,
@@ -232,7 +247,7 @@ router.post('/v1/accounts', async function (req, res, next) {
         //}, hashIp)
         }, ip)
     } else {
-        result = {"error": {"base": ["Only standard accounts names allowed"]}}
+        result = {"error": {"base": [currentErr]}}
     }
     await res.json(result)
 });
